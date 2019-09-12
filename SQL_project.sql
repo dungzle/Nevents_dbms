@@ -9,9 +9,9 @@
 drop table Campaigns cascade;
 create table Campaigns (
   id  SERIAL,
-  name   varchar(50),
+  name   varchar(50) NOT NULL,
 	concept varchar(40) check (concept in ('Concert', 'Contest', 'Fair')),
-  start_date	date,
+  start_date	date NOT NULL,
   end_date	date check (end_date > start_date),
 	primary key(id,name)
 );
@@ -21,14 +21,14 @@ create table Account (
   id 				SERIAL primary key,
   amount 			real check (amount + curr_bal > 0),
   curr_bal 		int default 0,
-	trans_time 		timestamp DEFAULT current_timestamp
+	trans_time 		timestamp without time zone DEFAULT current_timestamp
 );
 ----------------------------------------------------------------------------------------------------------------
 drop table Sponsor cascade;
 create table Sponsor (
   id SERIAL,
-  name 	varchar(20),
-  phone 	varchar(20),
+  name 	varchar(20) NOT NULL,
+  phone 	varchar(20) NOT NULL,
 	company varchar(50),
 	primary key(id,name)
 );
@@ -36,17 +36,17 @@ create table Sponsor (
 drop table Events cascade;
 create table Events (
   id SERIAL primary key,
-  place varchar(50),
+  place varchar(50) NOT NULL,
   types varchar(40) check (types in ('Main-event', 'Pop-up-event', 'Leaflet', 'Parade')),
-  start_date date,
+  start_date date NOT NULL,
   end_date date check (end_date >= start_date)
 );
 ----------------------------------------------------------------------------------------------------------------
 drop table Members cascade;
 create table Members (
   id 	SERIAL,
-  name 	varchar(20),
-  phone 	varchar(20),
+  name 	varchar(20) NOT NULL,
+  phone 	varchar(20) NOT NULL,
 	birthday date,
 	hometown varchar(15),
 	campaign_counts real default 0,
@@ -54,16 +54,13 @@ create table Members (
 	primary key(id,name),
 	tiers	varchar(20) check (tiers in ('Volunteer', 'Member', 'Head')) default 'Volunteer'
 );
+
 ----------------------------------------------------------------------------------------------------------------
 -- RELATIONSHIP:
--- 1. Paid:
---		Keep record of all events' cost has been paid (INVALID/VALID) 
--- 2. Participate:
---		Keep record of all activities related to members and his/her evaluation for that activitiy
--- 3. Has:
---		Keep record of every events belong to a campaign
--- 4. Donate:
---		Keep record of the donation (in-flow budget)
+-- 1. Paid = record of all events' cost has been paid (INVALID/VALID) 
+-- 2. Participate =	record of all activities related to members and his/her evaluation for that activitiy
+-- 3. Has = record of every events belong to a campaign
+-- 4. Donate = record of the donation (in-flow)
 ----------------------------------------------------------------------------------------------------------------	
 drop table Paid cascade;
 create table Paid (
@@ -113,6 +110,7 @@ create table Donate (
    on delete cascade
    on update cascade
 );
+
 ----------------------------------------------------------------------------------------------------------------
 -- TRIGGER --
 -- 1. Account's transactions input:
