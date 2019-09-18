@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # https://wiki.postgresql.org/wiki/Using_psycopg2_with_PostgreSQL
+from __future__ import print_function
 import psycopg2
 from psycopg2 import Date
 import re
 import pprint
+
 
 # ----------------------------------------------------------------------------------------------
 # HELPER METHOD:
@@ -55,7 +57,7 @@ def view_given_item(entity,item_id):
 
 # 5. view_options(input): Print an option menu + Return the response from user
 def view_options(input):
-	if input = 'regular':
+	if input == 'FULL':
 		print('Menu: ',
 			'1. Campaigns = record of campaigns info',
 			'2. Events = record of events info',
@@ -63,38 +65,38 @@ def view_options(input):
 			'4. Sponsor = record of sponsors info',
 			'5. Donate = record of in-flow transactions',
 			'6. Paid = record of out-flow transactions',
-			'7. Participate = record of member''s activity history', sep = "\n")
+			'7. Participate = record of member''s activity history', sep = '\n')
 		view_input = raw_input('Please choose a section (1/2/3/4/5/6/7): ')
-		if view_input = '1':
-		return 'Campaigns'
-		elif view_input = '2':
-			return 'Events'
-		elif view_input = '3':
-			return 'Members'
-		elif view_input = '4':
-			return 'Sponsor'
-		elif view_input = '5':
-			return 'Donate'
-		elif view_input = '6':
-			return 'Paid'
-		elif view_input = '7':
-			return 'Participate'
+		if view_input == '1':
+			return('Campaigns')
+		elif view_input == '2':
+			return('Events')
+		elif view_input == '3':
+			return('Members')
+		elif view_input == '4':
+			return('Sponsor')
+		elif view_input == '5':
+			return('Donate')
+		elif view_input == '6':
+			return('Paid')
+		elif view_input == '7':
+			return('Participate')
 		else:
 			print('Wrong input!')
 			return 0
 
-	elif input = 'time':
+	elif input == 'time':
 		print('Menu: ',
 			'1. Campaigns = record of campaigns info',
 			'2. Events = record of events info',
 			'3. Account = record of all transaction history', sep = "\n")
 		view_input = raw_input('Please choose a section (1/2/3): ')
-		if view_input = '1':
-			return 'Campaigns'
-		elif view_input = '2':
-			return 'Events'
-		elif view_input = '3':
-			return 'Account'
+		if view_input == '1':
+			return('Campaigns')
+		elif view_input == '2':
+			return('Events')
+		elif view_input == '3':
+			return('Account')
 		else:
 			print('Wrong input!')
 			return 0
@@ -105,11 +107,12 @@ def view_options(input):
 # Description: 
 # 1. view_last_updated: Show the last 10 updated items in a set
 # 2. view_specific_time: Show all items of a set in the specific period of time
+# 3. view_custom: Allow users to enter their own queries
 # ----------------------------------------------------------------------------------------------
 
 # 1. view_last_updated: Show the last 10 updated items in a set
 def view_last_updated():
-	view_input = view_options('regular')
+	view_input = view_options('FULL')
 	print('----------------------')
 	print('Last 10 items updated to %s' % view_input) 
 	cursor.execute("""
@@ -145,14 +148,38 @@ def view_specific_time():
 				WHERE trans_time >= %s AND trans_time <= %s
 			""", [Date(start_time[0],start_time[1],start_time[2]),Date(end_time[0],end_time[1],end_time[2])])
 			
-		print "--> All %s happening from %s to %s " % (view_input,str(start_time),str(end_time)) 
+		print("--> All %s happening from %s to %s " % (view_input,str(start_time),str(end_time))) 
 		data = cursor.fetchall()
 		pprint.pprint(data)
-	
-	except psycopg2.ProgrammingError, pe:
-		print ("DEBUG programming error")
-	except psycopg2.DataError, de:
-		print ("DEBUG data error")
+	except psycopg2.DataError:
+		print ("Data Error: e.g: Date type is invalid, etc")
+
+# 3. view_custom: Allow users to enter their own queries
+def view_custom():
+	while True:
+		print('-------------------------------')
+		print('Menu: ',
+			'1. Campaigns = record of campaigns info',
+			'2. Events = record of events info',
+			'3. Members = record of members info',
+			'4. Sponsor = record of sponsors info',
+			'5. Donate = record of in-flow transactions',
+			'6. Paid = record of out-flow transactions',
+			'7. Participate = record of member''s activity history', sep = "\n")
+		print('-------------------------------')
+		print('Notice: You are not allowed to CREATE/UPDATE/DELETE in this task')
+		request = raw_input('Please input your query: ')
+		if re.match(r"(?i)\W(CREATE|UPDATE|DELETE|DROP)\s",request): break
+		try:
+			cursor.execute(""" %s """ % [request])
+			print('Result: ') 
+			data = cursor.fetchall()
+			pprint.pprint(data)
+		except psycopg2.ProgrammingError:
+			print("Programming Error: e.g: table not found/already exists, syntax error in the SQL statement, wrong number of parameters specified, etc")
+		finish = raw_input('Do you want to retry (Y/N): ')
+		if (finish == 'N'): break
+		print('----------------------')
 
 # ----------------------------------------------------------------------------------------------
 # TASK 2: INSERT DATA
@@ -180,8 +207,8 @@ def insertion(insertion_input):
 						VALUES (%s,%s,%s,%s)
 					""", [camp_name, camp_concept, Date(start_date[0],start_date[1],start_date[2]), Date(end_date[0],end_date[1],end_date[2])])
 					print('%s added successfully' % camp_name)
-				except psycopg2.IntegrityError, ie:
-					print("IntegrityError: The selected ID of campaign is already existed")
+				except psycopg2.DataError:
+					print("DataError: There is error with data type.")
 		
 		# 2. Events
 		if insertion_input == 'Events':
@@ -212,7 +239,7 @@ def insertion(insertion_input):
 						VALUES (%s,%s,%s)
 					""", [camp_id,camp_name,event_id])
 					print('Event %s added successfully to campaign %s' % event_id,camp_name)
-				except psycopg2.IntegrityError, ie:
+				except psycopg2.IntegrityError:
 					print("IntegrityError: The selected ID of campaign is already existed")
 		
 		# 3. Members
@@ -231,7 +258,7 @@ def insertion(insertion_input):
 						VALUES (%s,%s,%s,%s,%s)
 					""", [mem_name,mem_phone,mem_birthday,mem_hometown,mem_department])
 					print('%s added successfully' % mem_name)
-				except psycopg2.IntegrityError, ie:
+				except psycopg2.IntegrityError:
 					print("IntegrityError: The selected ID of campaign is already existed")
 		
 		# 4. Sponsors
@@ -248,7 +275,7 @@ def insertion(insertion_input):
 						VALUES (%s,%s,%s)
 					""", [spons_name,spons_phone,spons_company])
 					print('%s added successfully' % spons_name)
-				except psycopg2.IntegrityError, ie:
+				except psycopg2.IntegrityError:
 					print("IntegrityError: The selected ID of campaign is already existed")
 		
 		# 5. Donate
@@ -265,7 +292,7 @@ def insertion(insertion_input):
 						INSERT INTO Donate(sponsor_id,sponsor_name,amount) 
 						VALUES (%s,%s,%s)
 					""", [spons_id,spons_name,amount])
-				except psycopg2.IntegrityError, ie:
+				except psycopg2.IntegrityError:
 					print("IntegrityError: The selected ID of campaign is already existed")
 		
 		# 6. Paid
@@ -288,7 +315,7 @@ def insertion(insertion_input):
 						INSERT INTO Paid(event_id,amount) 
 						VALUES (%s,%s)
 					""",[event_id,amount])
-				except psycopg2.IntegrityError, ie:
+				except psycopg2.IntegrityError:
 					print("IntegrityError: The selected ID of campaign is already existed")
 		
 		# 7. Particpate
@@ -309,7 +336,7 @@ def insertion(insertion_input):
 						values (%s,%s,%s,%s,%s)
 					""", [camp_name, camp_id, mem_name, mem_id, evaluation])
 					print('Member %s added successfully to campaign %s' % (mem_name,camp_name))
-				except psycopg2.IntegrityError, ie:
+				except psycopg2.IntegrityError:
 					print("IntegrityError: The selected ID of campaign is already existed")
 			
 # ----------------------------------------------------------------------------------------------
@@ -317,9 +344,9 @@ def insertion(insertion_input):
 # Description: Allow users to edit any specific information of a set's item
 # ----------------------------------------------------------------------------------------------
 def set_modify(modify_input):
-	if modify_input = 'Campaigns':
+	if modify_input == 'Campaigns':
 		print('Updating CAMPAIGNS section.')
-		while TRUE:
+		while True:
 			camp_name = raw_input('Please input campaign name = ')
 			suggested_id('Campaigns', camp_name)
 			camp_id = raw_input('Choose Campaign ID = ')
@@ -338,47 +365,77 @@ def set_modify(modify_input):
 					""", [modify_column,modify_input,camp_id])
 				except psycopg2.DataError:
 					print("IntegrityError: The selected ID of campaign is already existed")
+			finish = raw_input('Do you want to continue modifying campaigns (Y/N)? ')
+			if finish == 'N': break
 					
-	elif modify_input = 'Events':
+	elif modify_input == 'Events':
 		print('Updating EVENTS section.')
-		camp_name = raw_input('Please input campaign name of that event = ')
+		while True:
+			event_id = raw_input('Please input ID of that event = ')
+			view_given_item('Events',event_id)
+			recheck = raw_input('Is this your event you choose? (Y/N) ')
+			while recheck == 'N': 
+				campaign_report('EVENTS')
+				event_id = raw_input('Please input ID of that event = ')
+				view_given_item('Events',event_id)
+				recheck = raw_input('Is this your event you choose? (Y/N) ')
+				print('-------------------------------------------')
+			modify_column = raw_input('Choose an information to modify (place/types/start_date/end_date): ')
+			if modify_column in ('place','types','start_date','end_date'):
+				modify_input = raw_input('Please insert new event''s %s: ' % modify_column)
+				try:
+					cursor.execute("""
+						UPDATE Events
+							SET %s = %s
+							WHERE id = %s
+						""", [modify_column,modify_input,event_id])
+				except psycopg2.DataError:
+					print("DATA ERROR. eg: the date input is wrong format (YYYY/MM/DD), etc")
+			finish = raw_input('Do you want to continue modifying events (Y/N)? ')
+			if finish == 'N': break			
 	
-	elif modify_input = 'Members':
+	elif modify_input == 'Members':
 		print('Updating MEMBERS section.')
-		mem_name = raw_input('Please input member name = ')
-		suggested_id('Members', mem_name)
-		camp_id = raw_input('Choose Member ID = ')
-		view_given_item('Members', mem_id)
-		modify_column = raw_input('Choose an information to modify (name,phone,birthday,department: ')
-		if modify_column in ('name','phone','birthday','hometown','department'):
-		modify_input = raw_input('Please insert new member''s %s: ' % modify_column)
-			try:
-				cursor.execute("""
-					UPDATE Members
-					SET %s = %s
-					WHERE id = %s
-				""", [modify_column,modify_input,mem_id])
-			except psycopg2.DataError:
-				print("IntegrityError: The selected ID of campaign is already existed")
+		while True:
+			mem_name = raw_input('Please input member name = ')
+			suggested_id('Members', mem_name)
+			camp_id = raw_input('Choose Member ID = ')
+			view_given_item('Members', mem_id)
+			modify_column = raw_input('Choose an information to modify (name,phone,birthday,department: ')
+			if modify_column in ('name','phone','birthday','hometown','department'):
+				modify_input = raw_input('Please insert new member''s %s: ' % modify_column)
+				try:
+					cursor.execute("""
+						UPDATE Members
+						SET %s = %s
+						WHERE id = %s
+					""", [modify_column,modify_input,mem_id])
+				except psycopg2.DataError:
+					print("IntegrityError: The selected ID of campaign is already existed")
+			finish = raw_input('Do you want to continue modifying members (Y/N)? ')
+			if finish == 'N': break
 
-	elif modify_input = 'Sponsor':
+	elif modify_input == 'Sponsor':
 		print('Updating SPONSOR section.')
-		spons_name = raw_input('Please input sponsor name = ')
-		suggested_id('Sponsors', spons_name)
-		spons_id = raw_input('Choose Sponsor ID = ')
-		view_given_item('Sponsors', spons_id)
-		modify_column = raw_input('Choose an information to modify: ')
-		if modify_column in ('name','phone','company'):
-		modify_input = raw_input('Please insert new sponsor''s %s: ' % modify_column)
-			try:
-				cursor.execute("""
-					UPDATE Sponsors
-					SET %s = %s
-					WHERE id = %s
-				""", [modify_column,modify_input,spons_id])
-			except psycopg2.DataError:
-				print("IntegrityError: The selected ID of campaign is already existed")
-	
+		while True:
+			spons_name = raw_input('Please input sponsor name = ')
+			suggested_id('Sponsors', spons_name)
+			spons_id = raw_input('Choose Sponsor ID = ')
+			view_given_item('Sponsors', spons_id)
+			modify_column = raw_input('Choose an information to modify: ')
+			if modify_column in ('name','phone','company'):
+				modify_input = raw_input('Please insert new sponsor''s %s: ' % modify_column)
+				try:
+					cursor.execute("""
+						UPDATE Sponsors
+						SET %s = %s
+						WHERE id = %s
+					""", [modify_column,modify_input,spons_id])
+				except psycopg2.DataError:
+					print("IntegrityError: The selected ID of campaign is already existed")
+			finish = raw_input('Do you want to continue modifying sponsors (Y/N)? ')
+			if finish == 'N': break
+
 # ----------------------------------------------------------------------------------------------
 # TASK 4: CREATE A REPORT
 # Description: 
@@ -393,7 +450,7 @@ def set_modify(modify_input):
 #		 c. The total donation for each donator
 # ----------------------------------------------------------------------------------------------
 # 1. Campaign report: State + Info of campaign at a specific time
-def campaign_report():
+def campaign_report(type):
 	camp_name = raw_input('Please input campaign name = ')
 	suggested_id('Campaigns', camp_name)
 	camp_id = raw_input('Choose Campaign ID = ')
@@ -412,31 +469,32 @@ def campaign_report():
 	else:
 		pprint.pprint(data)
 
-	print('----------------------')
-		
-	print('2. Members: ')
-	cursor.execute("""
-		SELECT * FROM Members
-		WHERE mem_id IN (SELECT mem_id FROM Participate
-		WHERE camp_id = %s)
-	""", [camp_id])
-	if data is None:
-		print('There is no members in this campaign')
-	else:
-		pprint.pprint(data)						
+	if type == 'FULL':
+		print('----------------------')
+			
+		print('2. Members: ')
+		cursor.execute("""
+			SELECT * FROM Members
+			WHERE mem_id IN (SELECT mem_id FROM Participate
+			WHERE camp_id = %s)
+		""", [camp_id])
+		if data is None:
+			print('There is no members in this campaign')
+		else:
+			pprint.pprint(data)						
 
-	print('----------------------')
+		print('----------------------')
 
-	print('3. Cost: ')
-	cursor.execute("""
-		SELECT * FROM Paid
-		WHERE event_id IN (SELECT event_id FROM Has WHERE camp_id = %s)
-	""", [camp_id])
-	data = cursor.fetchall()
-	if data is None:
-		print('There is no transactions in this campaign')
-	else:
-		pprint.pprint(data)						
+		print('3. Cost: ')
+		cursor.execute("""
+			SELECT * FROM Paid
+			WHERE event_id IN (SELECT event_id FROM Has WHERE camp_id = %s)
+		""", [camp_id])
+		data = cursor.fetchall()
+		if data is None:
+			print('There is no transactions in this campaign')
+		else:
+			pprint.pprint(data)						
 
 #	2. Member report: General Information + History of activities
 def member_report():
@@ -454,9 +512,9 @@ def member_report():
 			print('There is no record of activities')
 		else:
 			pprint.pprint(data)
-	except psycopg2.ProgrammingError, pe:
+	except psycopg2.ProgrammingError:
 		print ("DEBUG programming error")
-	except psycopg2.DataError, de:
+	except psycopg2.DataError:
 		print ("DEBUG data error")
 
 #	3. Account report (graphical + textual):
@@ -523,7 +581,7 @@ def account_report():
 		total = 0
 		for line in data:
 			total += line[1]
-		print "-> Total in-flow: " + str(in_flow)
+		print("-> Total in-flow: " + str(in_flow))
 		
 		print('Out-flow: ')
 		cursor.execute("""
@@ -536,33 +594,15 @@ def account_report():
 		total = 0
 		for line in data:
 			total += line[1]
-		print "-> Total in-flow: " + str(total)
+		print("-> Total in-flow: " + str(total))
 		
 		# Graphical report: Plotting ASCII graph
-		print "\nGraph report: "
+		print("\nGraph report: ")
 		data = [('in_flow', in_flow), ('out_flow', abs(out_flow))]
 		bar_plot(data)
 	
 	else:
 		print('Invalid activity!')
-
-# ----------------------------------------------------------------------------------------------
-# Task 5: CUSTOM QUERY
-# Description: Let the customers write their own query
-# ----------------------------------------------------------------------------------------------
-def custom_query():
-	while True:
-		request = raw_input('Please input your own query: ')
-		try:
-			cursor.execute(""" %s """, [request])
-			print('Result: ') 
-			for row in cursor.fetchall():
-				print ("%s %s %s" % (row[0], row[1], row[2]))
-		except psycopg2.ProgrammingError, ie:
-			print("IntegrityError: The selected ID of post is already existed")
-		finish = raw_input('Do you want to retry (Y/N): ')
-		if (finish == 'N'): break
-		print('----------------------')
 
 # ----------------------------------------------------------------------------------------------
 # MAIN PROGRAM
@@ -576,9 +616,8 @@ def main():
 				'2. Insert new input to database',
 				'3. Edit information in database',
 				'4. Create a report',
-				'C. Custom query',
 				'F. Finish', sep = "\n")
-		request = raw_input('Please choose an activity (1/2/3/4/C/F): ')
+		request = raw_input('Please choose an activity (1/2/3/4/F): ')
 
 		print('----------------------')
 		
@@ -586,19 +625,23 @@ def main():
 			print('Menu: ',
 				'1. View the last 10 updated items in a chosen set',
 				'2. View all items in the specific period of time',
-				'3. View cai gi do',sep = "\n")
+				'3. View custom - input your own query',sep = "\n")
 			view_input = raw_input('Please choose a type of data view (1/2/3): ')
-			if view_input = '1':
+			if view_input == '1':
 				view_last_updated()
-			elif view_input = '2':
+			elif view_input == '2':
 				view_specific_time()
+			elif view_input == '3':
+				view_custom()
+			else:
+				print('Wrong input!')
 
 		elif request == '2':
-			insertion_input = view_options('regular')
+			insertion_input = view_options('FULL')
 			insertion(insertion_input)
 	
 		elif request == '3':
-			modify_input = view_options('regular')
+			modify_input = view_options('FULL')
 			set_modify(modify_input)
 			
 		elif request == '4':
@@ -607,16 +650,13 @@ def main():
 				'2. Members = record of members info',
 				'3. Account = record of all inflow-outflow transactions) ',sep = "\n")
 			report_input = raw_input('Please choose a report (1/2/3): ')
-			if report_input = '1':
-				report_campaign()
-			elif report_input = '2':
-				report_member()
-			elif report_input = '3':
-				report_account()
-	
-		elif request == 'C':
-			custom_query()
-	
+			if report_input == '1':
+				campaign_report('FULL')
+			elif report_input == '2':
+				member_report()
+			elif report_input == '3':
+				account_report()
+
 		elif request == 'F':
 			break
 	
@@ -631,7 +671,7 @@ try:
 	dbconn.commit()
 	print('Transaction committed successfully')
 except (Exception, psycopg2.DatabaseError) as error :
-    print ("Error in transaction. Reset all the transaction to the original", error)
+    print ("Error in transaction. Reset all the transaction to the original \n", error)
     dbconn.rollback()
 finally:
 	cursor.close()
