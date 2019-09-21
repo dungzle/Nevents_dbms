@@ -1,5 +1,7 @@
-#!/usr/bin/env python3
-# https://wiki.postgresql.org/wiki/Using_psycopg2_with_PostgreSQL
+# psql -U postgres nevents
+# http://www.postgresqltutorial.com/postgresql-python/connect/
+# http://initd.org/psycopg/docs/errors.html
+
 from __future__ import print_function
 import psycopg2
 from psycopg2 import Date
@@ -56,8 +58,9 @@ def view_given_item(entity,item_id):
 		pprint.pprint(data)
 
 # 5. view_options(input): Print an option menu + Return the response from user
-def view_options(input):
-	if input == 'FULL':
+def view_options(req):
+	if req == 'FULL':
+		print('--------------------------')
 		print('Menu: ',
 			'1. Campaigns = record of campaigns info',
 			'2. Events = record of events info',
@@ -66,7 +69,7 @@ def view_options(input):
 			'5. Donate = record of in-flow transactions',
 			'6. Paid = record of out-flow transactions',
 			'7. Participate = record of member''s activity history', sep = '\n')
-		view_input = raw_input('Please choose a section (1/2/3/4/5/6/7): ')
+		view_input = input('Please choose a section (1/2/3/4/5/6/7): ')
 		if view_input == '1':
 			return('Campaigns')
 		elif view_input == '2':
@@ -90,7 +93,7 @@ def view_options(input):
 			'1. Campaigns = record of campaigns info',
 			'2. Events = record of events info',
 			'3. Account = record of all transaction history', sep = "\n")
-		view_input = raw_input('Please choose a section (1/2/3): ')
+		view_input = input('Please choose a section (1/2/3): ')
 		if view_input == '1':
 			return('Campaigns')
 		elif view_input == '2':
@@ -120,7 +123,7 @@ def view_last_updated():
 		FROM %s
 		ORDER BY id DESC
 		LIMIT 10
-	""")
+	""" % view_input)
 	data = cursor.fetchall()
 	pprint.pprint(data)
 
@@ -128,8 +131,8 @@ def view_last_updated():
 def view_specific_time():
 	view_input = view_options('time')
 	if view_input == 0: return
-	start_time = raw_input('Please choose a start day (yyyy/mm/dd): ')
-	end_time = raw_input('Please choose an end day (yyyy/mm/dd): ')
+	start_time = input('Please choose a start day (yyyy/mm/dd): ')
+	end_time = input('Please choose an end day (yyyy/mm/dd): ')
 	start_time = split_date(start_time)
 	end_time = split_date(end_time)
 
@@ -168,7 +171,7 @@ def view_custom():
 			'7. Participate = record of member''s activity history', sep = "\n")
 		print('-------------------------------')
 		print('Notice: You are not allowed to CREATE/UPDATE/DELETE in this task')
-		request = raw_input('Please input your query: ')
+		request = input('Please input your query: ')
 		if re.match(r"(?i)\W(CREATE|UPDATE|DELETE|DROP)\s",request): break
 		try:
 			cursor.execute(""" %s """ % [request])
@@ -177,7 +180,7 @@ def view_custom():
 			pprint.pprint(data)
 		except psycopg2.ProgrammingError:
 			print("Programming Error: e.g: table not found/already exists, syntax error in the SQL statement, wrong number of parameters specified, etc")
-		finish = raw_input('Do you want to retry (Y/N): ')
+		finish = input('Do you want to retry (Y/N): ')
 		if (finish == 'N'): break
 		print('----------------------')
 
@@ -193,13 +196,13 @@ def insertion(insertion_input):
 		# 1. Campaigns
 		if insertion_input == 'Campaigns':
 			print('Please input the new campaign\'s infos: ')
-			camp_name = raw_input('1. Name = ')
-			start_date = raw_input('2. Start date (yyyy/mm/dd) = ')
-			end_date = raw_input('3. End date (yyyy/mm/dd) = ')
-			camp_concept = raw_input('4. Concept = ')
+			camp_name = input('1. Name = ')
+			start_date = input('2. Start date (yyyy/mm/dd) = ')
+			end_date = input('3. End date (yyyy/mm/dd) = ')
+			camp_concept = input('4. Concept (Concert, Contest, Fair)= ')
 			start_date = split_date(start_date)
 			end_date = split_date(end_date)
-			confirmation = raw_input('Are you sure with your input (Y/N)? ')
+			confirmation = input('Are you sure with your input (Y/N)? ')
 			if confirmation == 'Y':
 				try:
 					cursor.execute(""" 
@@ -213,13 +216,13 @@ def insertion(insertion_input):
 		# 2. Events
 		if insertion_input == 'Events':
 			print('Please input the new event''s infos: ')
-			event_place = raw_input('1. Place = ')
-			event_type = raw_input('2. Type of event (Main-event,Pop-up-event,Leaflet,Parade) = ')
-			start_date = raw_input('3. Start date (yyyy/mm/dd) = ')
-			end_date = raw_input('3. End date (yyyy/mm/dd) = ')
+			event_place = input('1. Place = ')
+			event_type = input('2. Type of event (Main-event,Pop-up-event,Leaflet,Parade) = ')
+			start_date = input('3. Start date (yyyy/mm/dd) = ')
+			end_date = input('3. End date (yyyy/mm/dd) = ')
 			start_date = split_date(start_date)
 			end_date = split_date(end_date)
-			confirmation = raw_input('Are you sure with your input (Y/N)? ')
+			confirmation = input('Are you sure with your input (Y/N)? ')
 			if confirmation == 'Y':
 				try:
 					cursor.execute(""" 
@@ -228,9 +231,9 @@ def insertion(insertion_input):
 					""", [event_place, event_type, Date(start_date[0],start_date[1],start_date[2]), Date(end_date[0],end_date[1],end_date[2])])
 					print('Event added successfully. Now let''s add this event to a campaign')
 					print('----------------------')
-					camp_name = raw_input('1. Campaign name: ')
+					camp_name = input('1. Campaign name: ')
 					suggested_id('Campaigns', camp_name)
-					camp_id = raw_input('2. Campaign ID = ')
+					camp_id = input('2. Campaign ID = ')
 					cursor.execute(""" SELECT max(id) FROM Events """)
 					row = cursor.fetchone()
 					if (row is not None): event_id = row[0]
@@ -239,18 +242,18 @@ def insertion(insertion_input):
 						VALUES (%s,%s,%s)
 					""", [camp_id,camp_name,event_id])
 					print('Event %s added successfully to campaign %s' % event_id,camp_name)
-				except psycopg2.IntegrityError:
-					print("IntegrityError: The selected ID of campaign is already existed")
-		
+				except psycopg2.DataError:
+					print("DataError: There is error with data type.")
+
 		# 3. Members
 		if insertion_input == 'Members':
 			print('Please input the new member\'s infos: ')
-			mem_name = raw_input('1. Name = ')
-			mem_phone = raw_input('2. Phone = ')
-			mem_birthday = raw_input('3. Birthday (yyyy/mm/dd) = ')
-			mem_hometown = raw_input('4. Hometown = ')
-			mem_department = raw_input('5. Department (Marketing/Facility/Content/ER) = ')
-			confirmation = raw_input('Are you sure with your input (Y/N)? ')
+			mem_name = input('1. Name = ')
+			mem_phone = input('2. Phone = ')
+			mem_birthday = input('3. Birthday (yyyy/mm/dd) = ')
+			mem_hometown = input('4. Hometown = ')
+			mem_department = input('5. Department (Marketing/Facility/Content/ER) = ')
+			confirmation = input('Are you sure with your input (Y/N)? ')
 			if confirmation == 'Y':
 				try:
 					cursor.execute(""" 
@@ -258,16 +261,16 @@ def insertion(insertion_input):
 						VALUES (%s,%s,%s,%s,%s)
 					""", [mem_name,mem_phone,mem_birthday,mem_hometown,mem_department])
 					print('%s added successfully' % mem_name)
-				except psycopg2.IntegrityError:
-					print("IntegrityError: The selected ID of campaign is already existed")
-		
+				except psycopg2.DataError:
+					print("DataError: There is error with data type.")
+
 		# 4. Sponsors
 		if insertion_input == 'Sponsors':
 			print('Please input the new sponsor\'s infos: ')
-			spons_name = raw_input('1. Name = ')
-			spons_phone = raw_input('2. Phone = ')
-			spons_company = raw_input('3. Company = ')
-			confirmation = raw_input('Are you sure with your input (Y/N)? ')
+			spons_name = input('1. Name = ')
+			spons_phone = input('2. Phone = ')
+			spons_company = input('3. Company = ')
+			confirmation = input('Are you sure with your input (Y/N)? ')
 			if confirmation == 'Y':
 				try:
 					cursor.execute(""" 
@@ -282,10 +285,10 @@ def insertion(insertion_input):
 		if insertion_input == 'Donate':
 			view_last_updated('Sponsor')
 			print('Please input the new donation\'s infos: ')
-			spons_name = raw_input('1. Sponsor name = ')
-			spons_id = raw_input('2. Sponsor ID = ')
-			amount = raw_input('3. Amount = ')
-			confirmation = raw_input('Are you sure with your input (Y/N)? ')
+			spons_name = input('1. Sponsor name = ')
+			spons_id = input('2. Sponsor ID = ')
+			amount = input('3. Amount = ')
+			confirmation = input('Are you sure with your input (Y/N)? ')
 			if confirmation == 'Y':
 				try:
 					cursor.execute(""" 
@@ -293,12 +296,12 @@ def insertion(insertion_input):
 						VALUES (%s,%s,%s)
 					""", [spons_id,spons_name,amount])
 				except psycopg2.IntegrityError:
-					print("IntegrityError: The selected ID of campaign is already existed")
+					print("IntegrityError. eg: Value is not met the restriction (amount > 0)")
 		
 		# 6. Paid
 		if insertion_input == 'Paid':
 			print('Please input the new out-flow\'s infos: ')
-			camp_name = raw_input('1. Campaign name = ')
+			camp_name = input('1. Campaign name = ')
 			print('All events related to campaign %s: ' % camp_name)
 			cursor.execute("""
 				SELECT * FROM Events
@@ -306,9 +309,9 @@ def insertion(insertion_input):
 			""",[camp_name])
 			data = cursor.fetchall()
 			pprint.pprint(data)
-			event_id = raw_input('2. Event ID = ')
-			amount = raw_input('3. Amount < 0 (e.g: -100) = ')
-			confirmation = raw_input('Are you sure with your input?\n(%s,%s,%s)\n (Y/N): ' % (camp_name,event_id,amount))
+			event_id = input('2. Event ID = ')
+			amount = input('3. Amount < 0 (e.g: -100) = ')
+			confirmation = input('Are you sure with your input?\n(%s,%s,%s)\n (Y/N): ' % (camp_name,event_id,amount))
 			if confirmation == 'Y':
 				try:
 					cursor.execute(""" 
@@ -316,19 +319,19 @@ def insertion(insertion_input):
 						VALUES (%s,%s)
 					""",[event_id,amount])
 				except psycopg2.IntegrityError:
-					print("IntegrityError: The selected ID of campaign is already existed")
+					print("IntegrityError. eg: Value is not met the restriction (amount < 0)")
 		
 		# 7. Particpate
 		if insertion_input == 'Participate':
 			print('Please input the new participation\'s infos: ')
-			camp_name = raw_input('1. Campaign name = ')
+			camp_name = input('1. Campaign name = ')
 			suggested_id('Campaigns', camp_name)
-			camp_id = raw_input('2. Campaign ID = ')
-			mem_name = raw_input('3. Member name = ')
+			camp_id = input('2. Campaign ID = ')
+			mem_name = input('3. Member name = ')
 			suggested_id('Members', mem_name)
-			mem_id = raw_input('4. Member ID = ')
-			evaluation = raw_input('5. Evaluation = ')
-			confirmation = raw_input('Are you sure with your input?\n(%s,%s,%s,%s,%s)\n (Y/N): ' % (camp_name,camp_id,mem_name,mem_id,evaluation))
+			mem_id = input('4. Member ID = ')
+			evaluation = input('5. Evaluation = ')
+			confirmation = input('Are you sure with your input?\n(%s,%s,%s,%s,%s)\n (Y/N): ' % (camp_name,camp_id,mem_name,mem_id,evaluation))
 			if confirmation == 'Y':
 				try:
 					cursor.execute(""" 
@@ -347,93 +350,95 @@ def set_modify(modify_input):
 	if modify_input == 'Campaigns':
 		print('Updating CAMPAIGNS section.')
 		while True:
-			camp_name = raw_input('Please input campaign name = ')
+			camp_name = input('Please input campaign name = ')
 			suggested_id('Campaigns', camp_name)
-			camp_id = raw_input('Choose Campaign ID = ')
+			camp_id = input('Choose Campaign ID = ')
 			view_given_item('Campaigns', camp_id)
 			print('Menu: ',
 					'1. Campaign name',
 					'2. Campaign concept')
-			modify_column = raw_input('Choose an information to modify (name/concept): ')
+			modify_column = input('Choose an information to modify (name/concept): ')
 			if modify_column in ('name','concept'):
-				modify_input = raw_input('Please insert new campaign''s %s: ' % modify_column)
+				modify_input = input('Please insert new campaign''s %s: ' % modify_column)
 				try:
 					cursor.execute("""
 						UPDATE Campaigns
 						SET %s = %s
 						WHERE id = %s
 					""", [modify_column,modify_input,camp_id])
-				except psycopg2.DataError:
-					print("IntegrityError: The selected ID of campaign is already existed")
-			finish = raw_input('Do you want to continue modifying campaigns (Y/N)? ')
+				except psycopg2.IntegrityError:
+					print("IntegrityError. eg: The selected ID of campaign is not existed")
+			finish = input('Do you want to continue modifying campaigns (Y/N)? ')
 			if finish == 'N': break
 					
 	elif modify_input == 'Events':
 		print('Updating EVENTS section.')
 		while True:
-			event_id = raw_input('Please input ID of that event = ')
+			event_id = input('Please input ID of that event = ')
 			view_given_item('Events',event_id)
-			recheck = raw_input('Is this your event you choose? (Y/N) ')
+			recheck = input('Is this your event you choose? (Y/N) ')
 			while recheck == 'N': 
 				campaign_report('EVENTS')
-				event_id = raw_input('Please input ID of that event = ')
+				event_id = input('Please input ID of that event = ')
 				view_given_item('Events',event_id)
-				recheck = raw_input('Is this your event you choose? (Y/N) ')
+				recheck = input('Is this your event you choose? (Y/N) ')
 				print('-------------------------------------------')
-			modify_column = raw_input('Choose an information to modify (place/types/start_date/end_date): ')
+			modify_column = input('Choose an information to modify (place/types/start_date/end_date): ')
 			if modify_column in ('place','types','start_date','end_date'):
-				modify_input = raw_input('Please insert new event''s %s: ' % modify_column)
+				modify_input = input('Please insert new event''s %s: ' % modify_column)
 				try:
 					cursor.execute("""
 						UPDATE Events
 							SET %s = %s
 							WHERE id = %s
 						""", [modify_column,modify_input,event_id])
+				except psycopg2.IntegrityError:
+					print("IntegrityError. eg: The selected ID is not existed")
 				except psycopg2.DataError:
 					print("DATA ERROR. eg: the date input is wrong format (YYYY/MM/DD), etc")
-			finish = raw_input('Do you want to continue modifying events (Y/N)? ')
+			finish = input('Do you want to continue modifying events (Y/N)? ')
 			if finish == 'N': break			
 	
 	elif modify_input == 'Members':
 		print('Updating MEMBERS section.')
 		while True:
-			mem_name = raw_input('Please input member name = ')
+			mem_name = input('Please input member name = ')
 			suggested_id('Members', mem_name)
-			camp_id = raw_input('Choose Member ID = ')
+			camp_id = input('Choose Member ID = ')
 			view_given_item('Members', mem_id)
-			modify_column = raw_input('Choose an information to modify (name,phone,birthday,department: ')
+			modify_column = input('Choose an information to modify (name,phone,birthday,department: ')
 			if modify_column in ('name','phone','birthday','hometown','department'):
-				modify_input = raw_input('Please insert new member''s %s: ' % modify_column)
+				modify_input = input('Please insert new member''s %s: ' % modify_column)
 				try:
 					cursor.execute("""
 						UPDATE Members
 						SET %s = %s
 						WHERE id = %s
 					""", [modify_column,modify_input,mem_id])
-				except psycopg2.DataError:
-					print("IntegrityError: The selected ID of campaign is already existed")
-			finish = raw_input('Do you want to continue modifying members (Y/N)? ')
+				except psycopg2.IntegrityError:
+					print("IntegrityError: The selected ID is not existed")
+			finish = input('Do you want to continue modifying members (Y/N)? ')
 			if finish == 'N': break
 
 	elif modify_input == 'Sponsor':
 		print('Updating SPONSOR section.')
 		while True:
-			spons_name = raw_input('Please input sponsor name = ')
+			spons_name = input('Please input sponsor name = ')
 			suggested_id('Sponsors', spons_name)
-			spons_id = raw_input('Choose Sponsor ID = ')
+			spons_id = input('Choose Sponsor ID = ')
 			view_given_item('Sponsors', spons_id)
-			modify_column = raw_input('Choose an information to modify: ')
+			modify_column = input('Choose an information to modify: ')
 			if modify_column in ('name','phone','company'):
-				modify_input = raw_input('Please insert new sponsor''s %s: ' % modify_column)
+				modify_input = input('Please insert new sponsor''s %s: ' % modify_column)
 				try:
 					cursor.execute("""
 						UPDATE Sponsors
 						SET %s = %s
 						WHERE id = %s
 					""", [modify_column,modify_input,spons_id])
-				except psycopg2.DataError:
-					print("IntegrityError: The selected ID of campaign is already existed")
-			finish = raw_input('Do you want to continue modifying sponsors (Y/N)? ')
+				except psycopg2.IntegrityError:
+					print("IntegrityError: The selected ID is not existed")
+			finish = input('Do you want to continue modifying sponsors (Y/N)? ')
 			if finish == 'N': break
 
 # ----------------------------------------------------------------------------------------------
@@ -451,9 +456,9 @@ def set_modify(modify_input):
 # ----------------------------------------------------------------------------------------------
 # 1. Campaign report: State + Info of campaign at a specific time
 def campaign_report(type):
-	camp_name = raw_input('Please input campaign name = ')
+	camp_name = input('Please input campaign name = ')
 	suggested_id('Campaigns', camp_name)
-	camp_id = raw_input('Choose Campaign ID = ')
+	camp_id = input('Choose Campaign ID = ')
 	view_given_item('Campaigns', camp_id)
 	print('State of this campaign: ')
 	print('----------------------')
@@ -498,9 +503,9 @@ def campaign_report(type):
 
 #	2. Member report: General Information + History of activities
 def member_report():
-	mem_name = raw_input('Please input the member name to report: ')
+	mem_name = input('Please input the member name to report: ')
 	suggested_id('Members', mem_name)
-	mem_id = raw_input('Please select that member ID = ')
+	mem_id = input('Please select that member ID = ')
 	view_given_item('Members', mem_id)
 	print('Activities history of this member: ')
 	try:
@@ -512,8 +517,8 @@ def member_report():
 			print('There is no record of activities')
 		else:
 			pprint.pprint(data)
-	except psycopg2.ProgrammingError:
-		print ("DEBUG programming error")
+	except psycopg2.IntegrityError:
+		print ("IntegrityError. eg: The selected ID is not exist")
 	except psycopg2.DataError:
 		print ("DEBUG data error")
 
@@ -523,7 +528,7 @@ def member_report():
 #		 c. The total donation for each donator		
 def account_report():
 	print('Option: 1. Report the cost of every campaigns, 2. Report the donation of every donators, 3. Report in/out flow for a specific period of time')
-	report_request = raw_input('Please choose your report type (1/2/3): ')
+	report_request = input('Please choose your report type (1/2/3): ')
 	print('----------------------')
 
 	# Report cost of campaigns
@@ -561,8 +566,8 @@ def account_report():
 		
 	# Report in/outflow for a specific period of time
 	elif report_request == '3':
-		start_time = raw_input('What is the start time for the report (yyyy/mm/dd): ')
-		end_time = raw_input('What is the end time for the report (yyyy/mm/dd): ')
+		start_time = input('What is the start time for the report (yyyy/mm/dd): ')
+		end_time = input('What is the end time for the report (yyyy/mm/dd): ')
 
 		print('This is the report for the period from %s to %s: ', [start_time,end_time])
 
@@ -617,7 +622,7 @@ def main():
 				'3. Edit information in database',
 				'4. Create a report',
 				'F. Finish', sep = "\n")
-		request = raw_input('Please choose an activity (1/2/3/4/F): ')
+		request = input('Please choose an activity (1/2/3/4/F): ')
 
 		print('----------------------')
 		
@@ -626,7 +631,7 @@ def main():
 				'1. View the last 10 updated items in a chosen set',
 				'2. View all items in the specific period of time',
 				'3. View custom - input your own query',sep = "\n")
-			view_input = raw_input('Please choose a type of data view (1/2/3): ')
+			view_input = input('Please choose a type of data view (1/2/3): ')
 			if view_input == '1':
 				view_last_updated()
 			elif view_input == '2':
@@ -649,7 +654,7 @@ def main():
 				'1. Campaigns = record of campaigns info',
 				'2. Members = record of members info',
 				'3. Account = record of all inflow-outflow transactions) ',sep = "\n")
-			report_input = raw_input('Please choose a report (1/2/3): ')
+			report_input = input('Please choose a report (1/2/3): ')
 			if report_input == '1':
 				campaign_report('FULL')
 			elif report_input == '2':
@@ -665,13 +670,15 @@ def main():
 			print('----------------------')
 
 try:
-	dbconn = psycopg2.connect(host='studsql.csc.uvic.ca', user='vistula', password='&;8QEE&&Ar')
+	#dbconn = psycopg2.connect(host='studsql.csc.uvic.ca', user='vistula', password='&;8QEE&&Ar')
+	print('Connecting to the PostgreSQL database...')
+	dbconn = psycopg2.connect(host="localhost", database="nevents", user="postgres", password="dung104.")
 	cursor = dbconn.cursor()
 	if __name__ == "__main__": main()
 	dbconn.commit()
 	print('Transaction committed successfully')
 except (Exception, psycopg2.DatabaseError) as error :
-    print ("Error in transaction. Reset all the transaction to the original \n", error)
+    print ("Error in connection/transaction. Reset all the transaction to the original \n", error)
     dbconn.rollback()
 finally:
 	cursor.close()
