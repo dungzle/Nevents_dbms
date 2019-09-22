@@ -6,8 +6,7 @@ from __future__ import print_function
 import psycopg2
 from psycopg2 import Date
 import re
-import pprint
-
+from tabulate import tabulate
 
 # ----------------------------------------------------------------------------------------------
 # HELPER METHOD:
@@ -35,32 +34,40 @@ def bar_plot(data):
 		bar = '|' * (abs(int(value)) // 1000)
 		print(name + (' ' * (5 + max_length - len(name)))  + bar)
 
-# 3. suggested_id(entity,name): Suggest ID for list of item with the similar input name (allow a few mispellings)
-def suggested_id(entity,name):
+# 3. suggested_id(view_set,name): Suggest ID for list of item with the similar input name (allow a few mispellings)
+def suggested_id(view_set,name):
 	print('----------------------')
-	print('List of suggested %s with given name %s: ' % (entity,name))
 	cursor.execute("""
 		SELECT * FROM %s
-		WHERE name % %s
-	""", [entity,name])
+		WHERE name %% '%s'
+	""" % (view_set,name))
 	data = cursor.fetchall()
-	pprint.pprint(data)
+	if len(data)>0:
+		print('List of suggested %s with given name %s: ' % (view_set,name))
+		beauty_print(view_set,data)
+	else: 
+		print('There is no matching record')
+		return 0
 	print('----------------------')
 
 # 4. view_given_item(entity,item_ID): View all information of a item with the given ID
-def view_given_item(entity,item_id):
+def view_given_item(view_set,item_id):
 	cursor.execute("""
 		SELECT * FROM %s
 		WHERE id = %s
-	""", [entity,item_id])
-	data = cursor.fetchone()
-	if data is not NONE:
-		pprint.pprint(data)
+	""" % (view_set,item_id))
+	data = cursor.fetchall()
+	if len(data)>0:
+		beauty_print(view_set,data)
+	else: 
+		print('There is no matching record')
+		return 0
+	print('----------------------')
 
 # 5. view_options(input): Print an option menu + Return the response from user
 def view_options(req):
+	print('--------------------------')
 	if req == 'FULL':
-		print('--------------------------')
 		print('Menu: ',
 			'1. Campaigns = record of campaigns info',
 			'2. Events = record of events info',
@@ -69,115 +76,191 @@ def view_options(req):
 			'5. Donate = record of in-flow transactions',
 			'6. Paid = record of out-flow transactions',
 			'7. Participate = record of member''s activity history', sep = '\n')
-		view_input = input('Please choose a section (1/2/3/4/5/6/7): ')
-		if view_input == '1':
+		view_set = input('Please choose a section (1/2/3/4/5/6/7): ')
+		print('----------------------')
+		if view_set == '1':
 			return('Campaigns')
-		elif view_input == '2':
+		elif view_set == '2':
 			return('Events')
-		elif view_input == '3':
+		elif view_set == '3':
 			return('Members')
-		elif view_input == '4':
+		elif view_set == '4':
 			return('Sponsor')
-		elif view_input == '5':
+		elif view_set == '5':
 			return('Donate')
-		elif view_input == '6':
+		elif view_set == '6':
 			return('Paid')
-		elif view_input == '7':
+		elif view_set == '7':
 			return('Participate')
 		else:
 			print('Wrong input!')
 			return 0
 
-	elif input == 'time':
+	elif req == 'entity':
+		print('Menu: ',
+			'1. Campaigns = record of campaigns info',
+			'2. Events = record of events info',
+			'3. Account = record of all transaction history', 
+			'4. Members = record of members info',
+			'5. Sponsor = record of sponsors info', sep = "\n")
+		view_set = input('Please choose a section (1/2/3/4/5): ')
+		print('----------------------')
+		if view_set == '1':
+			return('Campaigns')
+		elif view_set == '2':
+			return('Events')
+		elif view_set == '3':
+			return('Account')
+		elif view_set == '4':
+			return('Members')
+		elif view_set == '5':
+			return('Sponsor')
+		else:
+			print('Wrong input!')
+			return 0
+
+	elif req == 'time':
 		print('Menu: ',
 			'1. Campaigns = record of campaigns info',
 			'2. Events = record of events info',
 			'3. Account = record of all transaction history', sep = "\n")
-		view_input = input('Please choose a section (1/2/3): ')
-		if view_input == '1':
+		view_set = input('Please choose a section (1/2/3): ')
+		print('----------------------')
+		if view_set == '1':
 			return('Campaigns')
-		elif view_input == '2':
+		elif view_set == '2':
 			return('Events')
-		elif view_input == '3':
+		elif view_set == '3':
 			return('Account')
 		else:
 			print('Wrong input!')
 			return 0
+
+	elif req == 'modify':
+		print('Menu: ',
+			'1. Campaigns = record of campaigns info',
+			'2. Events = record of events info',
+			'3. Members = record of members info',
+			'4. Sponsor = record of sponsors info', sep = "\n")
+		view_set = input('Please choose a section (1/2/3/4): ')
+		print('----------------------')
+		if view_set == '1':
+			return('Campaigns')
+		elif view_set == '2':
+			return('Events')
+		elif view_set == '3':
+			return('Members')
+		elif view_set == '4':
+			return('Sponsor')
+		else:
+			print('Wrong input!')
+			return 0
+
 	
+# 6. beauty_print(view_set,data): Print the data properly (spacing,header)
+def beauty_print(view_set,data):
+	if view_set == 'Campaigns':
+		header_set = ['ID', 'NAME', 'CONCEPT', 'START DATE', 'END DATE']
+	elif view_set == 'Account':
+		header_set = ['ID', 'AMOUNT', 'BALANCE', 'TIME']
+	elif view_set == 'Sponsor':
+		header_set = ['ID', 'NAME', 'PHONE', 'COMPANY']
+	elif view_set == 'Events':
+		header_set = ['ID', 'PLACE', 'TYPE', 'START DATE', 'END DATE']
+	elif view_set == 'Members':
+		header_set = ['ID', 'NAME', 'PHONE', 'BIRTHDAY', 'HOMETOWN', 'COUNTS', 'DEPARTMENT', 'TIER']
+	elif view_set == 'Paid':
+		header_set = ['EVENT ID', 'AMOUNT', 'NOTICE']
+	elif view_set == 'Participate':
+		header_set = ['CAMP ID', 'CAMP NAME', 'MEM ID', 'MEM NAME', 'EVALUATION']
+	elif view_set == 'Has':
+		header_set = ['CAMP ID', 'CAMP NAME', 'EVENT ID']
+	elif view_set == 'Donate':
+		header_set = ['SPONSOR ID', 'SPONSOR NAME', 'AMOUNT']
+	elif view_set == 'Report':
+		header_set = ['ID', 'NAME', 'TOTAL']
+	else:
+		return	
+	if len(data) > 0:
+		print(tabulate(data, headers=header_set, tablefmt = "psql"))		
+	else:
+		print('There is no matching record')
+
 
 # ----------------------------------------------------------------------------------------------
 # TASK 1: VIEW DATA
 # Description: 
-# 1. view_last_updated: Show the last 10 updated items in a set
-# 2. view_specific_time: Show all items of a set in the specific period of time
-# 3. view_custom: Allow users to enter their own queries
+# 1. view_all: Show all items in a set
+# 2. view_last_updated: Show the last 10 updated items in a set
+# 3. view_specific_time: Show all items of a set in the specific period of time
+# 4. view_custom: Allow users to enter their own queries
 # ----------------------------------------------------------------------------------------------
-
-# 1. view_last_updated: Show the last 10 updated items in a set
-def view_last_updated():
-	view_input = view_options('FULL')
+# 1. view_all: Show all items in a set
+def view_all(entity):
 	print('----------------------')
-	print('Last 10 items updated to %s' % view_input) 
+	print('Table %s:' % entity) 
 	cursor.execute("""
-		SELECT *
-		FROM %s
-		ORDER BY id DESC
-		LIMIT 10
-	""" % view_input)
+		SELECT * FROM %s
+	""" % (entity))
 	data = cursor.fetchall()
-	pprint.pprint(data)
+	beauty_print(entity,data)
 
-# 2. view_specific_time: Show all items of a set in the specific period of time
+# 2. view_last_updated: Show the last 10 updated items in a set
+def view_last_updated():
+	view_set = view_options('entity')
+	if view_set == 0: return
+	print('----------------------')
+	print('Last 10 items updated to %s' % view_set) 
+	cursor.execute("""
+		SELECT * FROM %s
+		WHERE id in (SELECT id FROM %s ORDER BY id DESC LIMIT 10 ) 
+		ORDER BY id
+	""" % (view_set,view_set))
+	data = cursor.fetchall()
+	beauty_print(view_set,data)
+
+# 3. view_specific_time: Show all items of a set in the specific period of time
 def view_specific_time():
-	view_input = view_options('time')
-	if view_input == 0: return
+	view_set = view_options('time')
+	if view_set == 0: return
 	start_time = input('Please choose a start day (yyyy/mm/dd): ')
 	end_time = input('Please choose an end day (yyyy/mm/dd): ')
 	start_time = split_date(start_time)
 	end_time = split_date(end_time)
 
 	try:
-		if view_input == 'Campaigns' or view_input == 'Events':
+		if view_set == 'Campaigns' or view_set == 'Events':
 			cursor.execute("""
 				SELECT *
 				FROM %s 
 				WHERE start_date >= %s AND end_date <= %s
-			""", [Date(start_time[0],start_time[1],start_time[2]),Date(end_time[0],end_time[1],end_time[2])])
+			""" % (view_set,Date(start_time[0],start_time[1],start_time[2]),Date(end_time[0],end_time[1],end_time[2])))
 	
 		else:
 			cursor.execute("""
 				SELECT *
 				FROM %s 
 				WHERE trans_time >= %s AND trans_time <= %s
-			""", [Date(start_time[0],start_time[1],start_time[2]),Date(end_time[0],end_time[1],end_time[2])])
+			""" % (view_set,Date(start_time[0],start_time[1],start_time[2]),Date(end_time[0],end_time[1],end_time[2])))
 			
-		print("--> All %s happening from %s to %s " % (view_input,str(start_time),str(end_time))) 
+		print("--> All %s happening from %s to %s " % (view_set,str(start_time),str(end_time))) 
 		data = cursor.fetchall()
-		pprint.pprint(data)
+		beauty_print(view_set,data)
 	except psycopg2.DataError:
 		print ("Data Error: e.g: Date type is invalid, etc")
 
-# 3. view_custom: Allow users to enter their own queries
+# 4. view_custom: Allow users to enter their own queries
 def view_custom():
 	while True:
-		print('-------------------------------')
-		print('Menu: ',
-			'1. Campaigns = record of campaigns info',
-			'2. Events = record of events info',
-			'3. Members = record of members info',
-			'4. Sponsor = record of sponsors info',
-			'5. Donate = record of in-flow transactions',
-			'6. Paid = record of out-flow transactions',
-			'7. Participate = record of member''s activity history', sep = "\n")
-		print('-------------------------------')
-		print('Notice: You are not allowed to CREATE/UPDATE/DELETE in this task')
+		view_set = view_options('FULL')
+		print('--> Notice: You are only allowed to query SELECT in this task!!')
 		request = input('Please input your query: ')
 		if re.match(r"(?i)\W(CREATE|UPDATE|DELETE|DROP)\s",request): break
 		try:
-			cursor.execute(""" %s """ % [request])
+			cursor.execute(""" %s """ % request)
 			print('Result: ') 
 			data = cursor.fetchall()
-			pprint.pprint(data)
+			beauty_print(view_set,data)
 		except psycopg2.ProgrammingError:
 			print("Programming Error: e.g: table not found/already exists, syntax error in the SQL statement, wrong number of parameters specified, etc")
 		finish = input('Do you want to retry (Y/N): ')
@@ -189,6 +272,7 @@ def view_custom():
 # Description: Allow users to add new item to any selected set
 # ----------------------------------------------------------------------------------------------
 def insertion(insertion_input):
+	if insertion_input == 0: return
 	print('Starting insert new item to %s' % insertion_input) 
 	while True:
 		print('----------------------')
@@ -208,7 +292,7 @@ def insertion(insertion_input):
 					cursor.execute(""" 
 						INSERT INTO Campaigns(name,concept,start_date,end_date) 
 						VALUES (%s,%s,%s,%s)
-					""", [camp_name, camp_concept, Date(start_date[0],start_date[1],start_date[2]), Date(end_date[0],end_date[1],end_date[2])])
+					""" % (camp_name, camp_concept, Date(start_date[0],start_date[1],start_date[2]), Date(end_date[0],end_date[1],end_date[2])))
 					print('%s added successfully' % camp_name)
 				except psycopg2.DataError:
 					print("DataError: There is error with data type.")
@@ -228,7 +312,7 @@ def insertion(insertion_input):
 					cursor.execute(""" 
 						INSERT INTO Events(place,types,start_date,end_date) 
 						VALUES (%s,%s,%s,%s)
-					""", [event_place, event_type, Date(start_date[0],start_date[1],start_date[2]), Date(end_date[0],end_date[1],end_date[2])])
+					""" % (event_place, event_type, Date(start_date[0],start_date[1],start_date[2]), Date(end_date[0],end_date[1],end_date[2])))
 					print('Event added successfully. Now let''s add this event to a campaign')
 					print('----------------------')
 					camp_name = input('1. Campaign name: ')
@@ -240,7 +324,7 @@ def insertion(insertion_input):
 					cursor.execute(""" 
 						INSERT INTO Has(camp_id,camp_name,event_id) 
 						VALUES (%s,%s,%s)
-					""", [camp_id,camp_name,event_id])
+					""" % (camp_id,camp_name,event_id))
 					print('Event %s added successfully to campaign %s' % event_id,camp_name)
 				except psycopg2.DataError:
 					print("DataError: There is error with data type.")
@@ -259,13 +343,13 @@ def insertion(insertion_input):
 					cursor.execute(""" 
 						INSERT INTO Members(name,phone,birthday,hometown,department) 
 						VALUES (%s,%s,%s,%s,%s)
-					""", [mem_name,mem_phone,mem_birthday,mem_hometown,mem_department])
+					""" % (mem_name,mem_phone,mem_birthday,mem_hometown,mem_department))
 					print('%s added successfully' % mem_name)
 				except psycopg2.DataError:
 					print("DataError: There is error with data type.")
 
 		# 4. Sponsors
-		if insertion_input == 'Sponsors':
+		if insertion_input == 'Sponsor':
 			print('Please input the new sponsor\'s infos: ')
 			spons_name = input('1. Name = ')
 			spons_phone = input('2. Phone = ')
@@ -276,25 +360,31 @@ def insertion(insertion_input):
 					cursor.execute(""" 
 						INSERT INTO Sponsor(name,phone,company) 
 						VALUES (%s,%s,%s)
-					""", [spons_name,spons_phone,spons_company])
+					""" % (spons_name,spons_phone,spons_company))
 					print('%s added successfully' % spons_name)
 				except psycopg2.IntegrityError:
 					print("IntegrityError: The selected ID of campaign is already existed")
 		
 		# 5. Donate
 		if insertion_input == 'Donate':
-			view_last_updated('Sponsor')
+			view_all('Sponsor')
 			print('Please input the new donation\'s infos: ')
-			spons_name = input('1. Sponsor name = ')
-			spons_id = input('2. Sponsor ID = ')
+			spons_id = input('1. Sponsor ID = ')
+			cursor.execute("""
+				SELECT name FROM Sponsor
+				WHERE id = %s
+			""" % spons_id)
+			data = cursor.fetchone()
+			spons_name = data[0]
 			amount = input('3. Amount = ')
-			confirmation = input('Are you sure with your input (Y/N)? ')
+			confirmation = input('Are you sure with your input (%s,%s,%s) (Y/N)? ' % (spons_id,spons_name,amount))
 			if confirmation == 'Y':
 				try:
 					cursor.execute(""" 
 						INSERT INTO Donate(sponsor_id,sponsor_name,amount) 
-						VALUES (%s,%s,%s)
-					""", [spons_id,spons_name,amount])
+						VALUES (%s,'%s',%s)
+					""" % (spons_id,spons_name,amount))
+					print('Donation of %s added successfully' % spons_name)
 				except psycopg2.IntegrityError:
 					print("IntegrityError. eg: Value is not met the restriction (amount > 0)")
 		
@@ -302,22 +392,25 @@ def insertion(insertion_input):
 		if insertion_input == 'Paid':
 			print('Please input the new out-flow\'s infos: ')
 			camp_name = input('1. Campaign name = ')
-			print('All events related to campaign %s: ' % camp_name)
+			if suggested_id('Campaigns', camp_name) == 0: return				
+			camp_id = input ('2. Camp ID = ')
+			print('All events related to campaign %s: ' % camp_id)
 			cursor.execute("""
 				SELECT * FROM Events
-				WHERE id in (SELECT id FROM Has WHERE camp_name = %s)
-			""",[camp_name])
+				WHERE id in (SELECT event_id FROM Has WHERE camp_id = %s)
+			""" % camp_id)
 			data = cursor.fetchall()
-			pprint.pprint(data)
+			beauty_print("Events",data)
 			event_id = input('2. Event ID = ')
 			amount = input('3. Amount < 0 (e.g: -100) = ')
-			confirmation = input('Are you sure with your input?\n(%s,%s,%s)\n (Y/N): ' % (camp_name,event_id,amount))
+			confirmation = input('Are you sure with your input: (%s,%s,%s) (Y/N)? ' % (camp_name,event_id,amount))
 			if confirmation == 'Y':
 				try:
 					cursor.execute(""" 
 						INSERT INTO Paid(event_id,amount) 
 						VALUES (%s,%s)
-					""",[event_id,amount])
+					""" % (event_id,amount))
+					print(dbconn.notices)
 				except psycopg2.IntegrityError:
 					print("IntegrityError. eg: Value is not met the restriction (amount < 0)")
 		
@@ -325,22 +418,37 @@ def insertion(insertion_input):
 		if insertion_input == 'Participate':
 			print('Please input the new participation\'s infos: ')
 			camp_name = input('1. Campaign name = ')
-			suggested_id('Campaigns', camp_name)
+			if suggested_id('Campaigns', camp_name) == 0: return
 			camp_id = input('2. Campaign ID = ')
+			cursor.execute("""
+				SELECT name FROM Campaigns
+				WHERE id = %s
+			""" % camp_id)
+			data = cursor.fetchone()
+			camp_name = data[0]
 			mem_name = input('3. Member name = ')
-			suggested_id('Members', mem_name)
+			if suggested_id('Members', mem_name) == 0: return
 			mem_id = input('4. Member ID = ')
+			cursor.execute("""
+				SELECT name FROM Members
+				WHERE id = %s
+			""" % mem_id)
+			data = cursor.fetchone()
+			mem_name = data[0]
 			evaluation = input('5. Evaluation = ')
-			confirmation = input('Are you sure with your input?\n(%s,%s,%s,%s,%s)\n (Y/N): ' % (camp_name,camp_id,mem_name,mem_id,evaluation))
+			confirmation = input('Are you sure with your input (%s,%s,%s,%s,%s) (Y/N): ' % (camp_name,camp_id,mem_name,mem_id,evaluation))
 			if confirmation == 'Y':
 				try:
 					cursor.execute(""" 
 						insert into Participate(camp_id,camp_name,mem_id,mem_name,evaluation) 
-						values (%s,%s,%s,%s,%s)
-					""", [camp_name, camp_id, mem_name, mem_id, evaluation])
+						values (%s,'%s',%s,'%s','%s')
+					""" % (camp_id, camp_name, mem_id, mem_name, evaluation))
 					print('Member %s added successfully to campaign %s' % (mem_name,camp_name))
 				except psycopg2.IntegrityError:
 					print("IntegrityError: The selected ID of campaign is already existed")
+
+		finish = input('Do you want to continue inserting to %s (Y/N)? ' % insertion_input)
+		if finish == 'N': break
 			
 # ----------------------------------------------------------------------------------------------
 # TASK 3: UPDATE INFORMATION
@@ -351,23 +459,24 @@ def set_modify(modify_input):
 		print('Updating CAMPAIGNS section.')
 		while True:
 			camp_name = input('Please input campaign name = ')
-			suggested_id('Campaigns', camp_name)
+			if suggested_id('Campaigns', camp_name) == 0: break
 			camp_id = input('Choose Campaign ID = ')
-			view_given_item('Campaigns', camp_id)
-			print('Menu: ',
-					'1. Campaign name',
-					'2. Campaign concept')
+			if view_given_item('Campaigns', camp_id) == 0: break
 			modify_column = input('Choose an information to modify (name/concept): ')
 			if modify_column in ('name','concept'):
 				modify_input = input('Please insert new campaign''s %s: ' % modify_column)
 				try:
 					cursor.execute("""
 						UPDATE Campaigns
-						SET %s = %s
+						SET %s = '%s'
 						WHERE id = %s
-					""", [modify_column,modify_input,camp_id])
+					""" % (modify_column,modify_input,camp_id))
+					print('Updating campaign successfully!')
+					view_given_item('Campaigns', camp_id)
 				except psycopg2.IntegrityError:
-					print("IntegrityError. eg: The selected ID of campaign is not existed")
+					print("IntegrityError. eg: The selected ID of campaign is not existed, wrong concept!")
+			else:
+				print('Wrong input!')
 			finish = input('Do you want to continue modifying campaigns (Y/N)? ')
 			if finish == 'N': break
 					
@@ -375,27 +484,24 @@ def set_modify(modify_input):
 		print('Updating EVENTS section.')
 		while True:
 			event_id = input('Please input ID of that event = ')
-			view_given_item('Events',event_id)
+			if view_given_item('Events',event_id) == 0: break
 			recheck = input('Is this your event you choose? (Y/N) ')
-			while recheck == 'N': 
-				campaign_report('EVENTS')
-				event_id = input('Please input ID of that event = ')
-				view_given_item('Events',event_id)
-				recheck = input('Is this your event you choose? (Y/N) ')
-				print('-------------------------------------------')
-			modify_column = input('Choose an information to modify (place/types/start_date/end_date): ')
-			if modify_column in ('place','types','start_date','end_date'):
+			if recheck == 'N': break
+			modify_column = input('Choose an information to modify (place/types): ')
+			if modify_column in ('place','types'):
 				modify_input = input('Please insert new event''s %s: ' % modify_column)
 				try:
 					cursor.execute("""
 						UPDATE Events
-							SET %s = %s
+							SET %s = '%s'
 							WHERE id = %s
-						""", [modify_column,modify_input,event_id])
+						""" % (modify_column,modify_input,event_id))
+					print('Updating event successfully!')
+					view_given_item('Events', camp_id)
 				except psycopg2.IntegrityError:
 					print("IntegrityError. eg: The selected ID is not existed")
-				except psycopg2.DataError:
-					print("DATA ERROR. eg: the date input is wrong format (YYYY/MM/DD), etc")
+			else:
+				print('Wrong input!')
 			finish = input('Do you want to continue modifying events (Y/N)? ')
 			if finish == 'N': break			
 	
@@ -403,20 +509,24 @@ def set_modify(modify_input):
 		print('Updating MEMBERS section.')
 		while True:
 			mem_name = input('Please input member name = ')
-			suggested_id('Members', mem_name)
-			camp_id = input('Choose Member ID = ')
-			view_given_item('Members', mem_id)
-			modify_column = input('Choose an information to modify (name,phone,birthday,department: ')
-			if modify_column in ('name','phone','birthday','hometown','department'):
+			if suggested_id('Members', mem_name) == 0: break
+			mem_id = input('Choose Member ID = ')
+			if view_given_item('Members', mem_id) == 0: break
+			modify_column = input('Choose an information to modify (name/phone/hometown/department): ')
+			if modify_column in ('name','phone','hometown','department'):
 				modify_input = input('Please insert new member''s %s: ' % modify_column)
 				try:
 					cursor.execute("""
 						UPDATE Members
-						SET %s = %s
+						SET %s = '%s'
 						WHERE id = %s
-					""", [modify_column,modify_input,mem_id])
+					""" % (modify_column,modify_input,mem_id))
+					print('Updating member successfully!')
+					view_given_item('Members', camp_id)
 				except psycopg2.IntegrityError:
 					print("IntegrityError: The selected ID is not existed")
+			else:
+				print('Wrong input!')
 			finish = input('Do you want to continue modifying members (Y/N)? ')
 			if finish == 'N': break
 
@@ -424,20 +534,24 @@ def set_modify(modify_input):
 		print('Updating SPONSOR section.')
 		while True:
 			spons_name = input('Please input sponsor name = ')
-			suggested_id('Sponsors', spons_name)
+			if suggested_id('Sponsor', spons_name) == 0: break
 			spons_id = input('Choose Sponsor ID = ')
-			view_given_item('Sponsors', spons_id)
-			modify_column = input('Choose an information to modify: ')
+			if view_given_item('Sponsor', spons_id) == 0: break
+			modify_column = input('Choose an information to modify (name/phone/company): ')
 			if modify_column in ('name','phone','company'):
 				modify_input = input('Please insert new sponsor''s %s: ' % modify_column)
 				try:
 					cursor.execute("""
-						UPDATE Sponsors
-						SET %s = %s
+						UPDATE Sponsor
+						SET %s = '%s'
 						WHERE id = %s
-					""", [modify_column,modify_input,spons_id])
+					""" % (modify_column,modify_input,spons_id))
+					print('Updating sponsor successfully!')
+					view_given_item('Sponsor', spons_id)
 				except psycopg2.IntegrityError:
 					print("IntegrityError: The selected ID is not existed")
+			else:
+				print('Wrong input!')
 			finish = input('Do you want to continue modifying sponsors (Y/N)? ')
 			if finish == 'N': break
 
@@ -455,68 +569,58 @@ def set_modify(modify_input):
 #		 c. The total donation for each donator
 # ----------------------------------------------------------------------------------------------
 # 1. Campaign report: State + Info of campaign at a specific time
-def campaign_report(type):
+def campaign_report():
 	camp_name = input('Please input campaign name = ')
 	suggested_id('Campaigns', camp_name)
 	camp_id = input('Choose Campaign ID = ')
+	print('Campaign report: ')
 	view_given_item('Campaigns', camp_id)
 	print('State of this campaign: ')
-	print('----------------------')
 	print('1. Events: ')
 	cursor.execute("""
 		SELECT * FROM Events
 		WHERE id IN (SELECT event_id FROM Has
 		WHERE camp_id = %s)
-	""", [camp_id])
+	""" % (camp_id))
 	data = cursor.fetchall()
-	if data is None:
-		print('There is no events in this campaign')
-	else:
-		pprint.pprint(data)
-
-	if type == 'FULL':
-		print('----------------------')
-			
-		print('2. Members: ')
-		cursor.execute("""
-			SELECT * FROM Members
-			WHERE mem_id IN (SELECT mem_id FROM Participate
-			WHERE camp_id = %s)
-		""", [camp_id])
-		if data is None:
-			print('There is no members in this campaign')
-		else:
-			pprint.pprint(data)						
-
-		print('----------------------')
-
-		print('3. Cost: ')
-		cursor.execute("""
-			SELECT * FROM Paid
-			WHERE event_id IN (SELECT event_id FROM Has WHERE camp_id = %s)
-		""", [camp_id])
-		data = cursor.fetchall()
-		if data is None:
-			print('There is no transactions in this campaign')
-		else:
-			pprint.pprint(data)						
+	beauty_print('Events',data)
+	print('2. Members participate: ')
+	cursor.execute("""
+		SELECT * FROM Members
+		WHERE id IN (SELECT mem_id FROM Participate
+		WHERE camp_id = %s)
+	""" % (camp_id))
+	data = cursor.fetchall()
+	beauty_print('Members',data)			
+	print('3. Cost: ')
+	cursor.execute("""
+		SELECT * FROM Paid
+		WHERE event_id IN (SELECT event_id FROM Has WHERE camp_id = %s)
+	""" % (camp_id))
+	data = cursor.fetchall()
+	beauty_print('Paid',data)	
+	cursor.execute("""
+		SELECT sum(amount) FROM Paid
+		WHERE event_id IN (SELECT event_id FROM Has WHERE camp_id = %s)
+		AND notice = 'VALID'
+	""" % (camp_id))
+	data = cursor.fetchone()					
+	print('Total cost: %s' % data)
 
 #	2. Member report: General Information + History of activities
 def member_report():
 	mem_name = input('Please input the member name to report: ')
 	suggested_id('Members', mem_name)
 	mem_id = input('Please select that member ID = ')
+	print('Member report: ')
 	view_given_item('Members', mem_id)
 	print('Activities history of this member: ')
 	try:
 		cursor.execute("""
 			SELECT * FROM Participate where mem_id = %s
-		""", [mem_request_ID])
+		""" % (mem_id))
 		data = cursor.fetchall()
-		if data is None:
-			print('There is no record of activities')
-		else:
-			pprint.pprint(data)
+		beauty_print('Participate',data)
 	except psycopg2.IntegrityError:
 		print ("IntegrityError. eg: The selected ID is not exist")
 	except psycopg2.DataError:
@@ -527,65 +631,74 @@ def member_report():
 #		 b. The total cost for each campaign
 #		 c. The total donation for each donator		
 def account_report():
-	print('Option: 1. Report the cost of every campaigns, 2. Report the donation of every donators, 3. Report in/out flow for a specific period of time')
+	print('----------------------')
+	print('Option: ',
+		'1. Report the cost of every campaigns',
+		'2. Report the donation of every donators', 
+		'3. Report in/out flow for a specific period of time', sep = '\n')
 	report_request = input('Please choose your report type (1/2/3): ')
 	print('----------------------')
 
 	# Report cost of campaigns
 	if report_request == '1':
+		print('This is the report for the cost of each campaigns')
 		cursor.execute("""
-			SELECT C.name, TEMP.total 
-			FROM Campaigns C, (SELECT H.camp_id, sum(P.amount) total
+			SELECT C.id, C.name, TEMP.total 
+			FROM Campaigns C, (SELECT H.camp_id id, sum(P.amount) total
 						FROM Has H INNER JOIN Paid P ON H.event_id = P.event_id
-						GROUP BY H.camp_id HAVING P.notice = 'VALID') TEMP
-			where C.camp_id = TEMP.camp_id
+						WHERE P.notice = 'VALID' GROUP BY H.camp_id ) TEMP
+			where C.id = TEMP.id
 		""")
-		data = []
-		print('Textual report - total cost for each campaign: ')
-		for row in cursor.fetchall():
-			print ("%s %s" % (row[0], row[1]))
-			data.append((row[0],int(row[1]))) 
-		print('\nGraph report - total cost for each campaign: ')
-		bar_plot(data)
+		data = cursor.fetchall()
+		data_numeric = []
+		print('--> Textual report - total cost for each campaign: ')
+		beauty_print('Report',data)
+		for row in data:
+			data_numeric.append((row[1],int(row[2])))
+		print('--> Graph report - total cost for each campaign: ')
+		bar_plot(data_numeric)
 					
-	# Report inflow by sponsors 
+	# Report donation by sponsors 
 	elif report_request == '2':
+		print('This is the report for the donation by sponsors')
 		cursor.execute("""
-			SELECT S.name, TEMP.total 
-			FROM Sponsors S, (SELECT spons_id, sum(amount) total
-						FROM Donate D GROUP BY don_id) TEMP
-			where S.id = TEMP.spons_id
+			SELECT S.id, S.name, TEMP.total 
+			FROM Sponsor S, (SELECT sponsor_id id, sum(amount) total
+						FROM Donate D GROUP BY sponsor_id) TEMP
+			where S.id = TEMP.id
 		""")
-		data = []
-		print('Textual report - total donation for each donator: ')
-		for row in cursor.fetchall():
-			print ("%s %s" % (row[0], row[1]))
-			data.append((row[0],abs(int(row[1])))) 
-		print('\nGraph report - total donation for each donator: ')
-		bar_plot(data)
+		data = cursor.fetchall()
+		data_numeric = []
+		print('--> Textual report - total donation for each donator: ')
+		beauty_print('Report',data)
+		for row in data:
+			data_numeric.append((row[1],int(row[2])))
+		print('--> Graph report - total donation for each donator: ')
+		bar_plot(data_numeric)
 		
 	# Report in/outflow for a specific period of time
 	elif report_request == '3':
 		start_time = input('What is the start time for the report (yyyy/mm/dd): ')
 		end_time = input('What is the end time for the report (yyyy/mm/dd): ')
-
-		print('This is the report for the period from %s to %s: ', [start_time,end_time])
+		print('-----------------------')
+		print('This is the report for the period from %s to %s: ' % (start_time,end_time))
 
 		start_time = split_date(start_time)
 		end_time = split_date(end_time)
 		
 		# Textual report:
+		print('--> Textual report:')
 		print('In-flow: ')
 		cursor.execute("""
 			SELECT * 
 			FROM Account
 			WHERE trans_time >= %s AND trans_time <= %s AND amount > 0
-		""", [Date(start_time[0],start_time[1],start_time[2]), Date(end_time[0],end_time[1],end_time[2])])
+		""" % (Date(start_time[0],start_time[1],start_time[2]), Date(end_time[0],end_time[1],end_time[2])))
 		data = cursor.fetchall()
-		pprint.pprint(data)
-		total = 0
+		beauty_print('Account',data)
+		in_flow = 0
 		for line in data:
-			total += line[1]
+			in_flow += line[1]
 		print("-> Total in-flow: " + str(in_flow))
 		
 		print('Out-flow: ')
@@ -593,16 +706,16 @@ def account_report():
 			SELECT * 
 			FROM Account
 			WHERE trans_time >= %s AND trans_time <= %s AND amount < 0
-		""", [Date(start_time[0],start_time[1],start_time[2]), Date(end_time[0],end_time[1],end_time[2])])
+		""" % (Date(start_time[0],start_time[1],start_time[2]), Date(end_time[0],end_time[1],end_time[2])))
 		data = cursor.fetchall()
-		pprint.pprint(data)
-		total = 0
+		beauty_print('Account',data)
+		out_flow = 0
 		for line in data:
-			total += line[1]
-		print("-> Total in-flow: " + str(total))
+			out_flow += line[1]
+		print("-> Total out-flow: " + str(out_flow))
 		
 		# Graphical report: Plotting ASCII graph
-		print("\nGraph report: ")
+		print("\n--> Graph report: ")
 		data = [('in_flow', in_flow), ('out_flow', abs(out_flow))]
 		bar_plot(data)
 	
@@ -628,15 +741,19 @@ def main():
 		
 		if request == '1':
 			print('Menu: ',
-				'1. View the last 10 updated items in a chosen set',
-				'2. View all items in the specific period of time',
-				'3. View custom - input your own query',sep = "\n")
-			view_input = input('Please choose a type of data view (1/2/3): ')
-			if view_input == '1':
+				'1. View all items in a set',
+				'2. View the last 10 updated items in a chosen set',
+				'3. View all items in the specific period of time',
+				'4. View custom - input your own query',sep = "\n")
+			view_set = input('Please choose a type of data view (1/2/3/4): ')
+			if view_set == '1':
+				view_input = view_options('FULL')
+				view_all(view_input)
+			elif view_set == '2':
 				view_last_updated()
-			elif view_input == '2':
+			elif view_set == '2':
 				view_specific_time()
-			elif view_input == '3':
+			elif view_set == '3':
 				view_custom()
 			else:
 				print('Wrong input!')
@@ -646,17 +763,17 @@ def main():
 			insertion(insertion_input)
 	
 		elif request == '3':
-			modify_input = view_options('FULL')
+			modify_input = view_options('modify')
 			set_modify(modify_input)
 			
 		elif request == '4':
 			print('Menu: ',
-				'1. Campaigns = record of campaigns info',
-				'2. Members = record of members info',
-				'3. Account = record of all inflow-outflow transactions) ',sep = "\n")
+				'1. Summary of Campaigns record',
+				'2. Summary of Members info and history activities',
+				'3. Summary of Account (cost/donation)',sep = "\n")
 			report_input = input('Please choose a report (1/2/3): ')
 			if report_input == '1':
-				campaign_report('FULL')
+				campaign_report()
 			elif report_input == '2':
 				member_report()
 			elif report_input == '3':
@@ -666,9 +783,12 @@ def main():
 			break
 	
 		else:
-			print('Invalid activity')
-			print('----------------------')
+			print('--> Invalid activity!!')
 
+# ----------------------------------------------------------------------------------------------
+# CONNECTION
+# Description: Set up connection, cursor and handle connection error
+# ----------------------------------------------------------------------------------------------
 try:
 	#dbconn = psycopg2.connect(host='studsql.csc.uvic.ca', user='vistula', password='&;8QEE&&Ar')
 	print('Connecting to the PostgreSQL database...')
