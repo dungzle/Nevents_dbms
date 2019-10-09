@@ -57,7 +57,7 @@ python sql_project.py
 	( any new valid transaction adding to Donate/Paid will be added to Account for record automatically )
 		Adding new items to Donate/Paid and use view Account to see the changed.
 
-3. Testing trigram index against name:
+#### Testing trigram index against name:
 	( it allows users to input the name with a few mispelling )
 	- Adding new items to Events/Paid/Participate
 	
