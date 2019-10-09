@@ -65,6 +65,8 @@ python sql_project.py
 **Viet Dung, Le** - (https://github.com/dungzle)
 
 ## Acknowledgments
-http://www.postgresqltutorial.com/postgresql-python/connect/ (space)
-http://initd.org/psycopg/docs/errors.html (space)
-https://pypi.org/project/tabulate/
+http://www.postgresqltutorial.com/postgresql-python/connect/ 
+
+http://initd.org/psycopg/docs/errors.html 
+
+https://pypi.org/project/tabulate
