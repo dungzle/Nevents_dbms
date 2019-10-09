@@ -36,23 +36,19 @@ These instructions will get you a copy of the project up and running on your loc
 ( exit server )
 ```
 
-## Running the application-tier:
+### Running the application-tier:
 - Run the file: "sql_project.py" and try to interact with the program:
 ```
 python sql_project.py
 ```
 
 ### Testing:
-1. Testing Constraint:
+#### Testing Constraint:
 	Input the data that conflict the constraints and see the errors:
 	- Type: date, event type, campaigns concept
-	- Value: 
-		paid amount < 0
-		paid amount < balance ( if not, it is INVALID and raise notice )
-		donation amount > 0
-		End date > Start date
+	- Value: paid amount < 0, paid amount < balance (if not: INVALID), donation amount > 0, End date > Start date
 		
-2. Testing Automatic Operations:
+#### Testing Automatic Operations:
 	- Update tiers of employees:
 	( tiers will be automatically updated if his/her number of campaigns participation > 3 )
 		Adding more activities to Participate of a member
@@ -66,9 +62,9 @@ python sql_project.py
 	- Adding new items to Events/Paid/Participate
 	
 ## Authors
-** Viet Dung, Le ** - (https://github.com/dungzle)
+**Viet Dung, Le** - (https://github.com/dungzle)
 
 ## Acknowledgments
-http://www.postgresqltutorial.com/postgresql-python/connect/
-http://initd.org/psycopg/docs/errors.html
+http://www.postgresqltutorial.com/postgresql-python/connect/ (space)
+http://initd.org/psycopg/docs/errors.html (space)
 https://pypi.org/project/tabulate/
